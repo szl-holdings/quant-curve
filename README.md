@@ -1,55 +1,24 @@
-# Quant Curve — Quantization Quality-vs-Resource Gates
+# Quant Curve
 
-The third leg of the SZL bench suite. `frontier-bench` measures engines,
-`retrieval-bench` measures retrieval — `quant-curve` answers the deployment
-question: which quantization level keeps quality while cutting memory,
-proven on a Pareto frontier with receipts.
+Measured quantization evidence for the SZL stack — quality vs precision, drawn only from real runs.
 
-## Contract
+## What this is
 
-- Pure math over measured inputs only. The package never invents a
-  measurement; points arrive from real harness runs (e.g. frontier-bench).
-- Five-state gates: MEASURED / BLOCKED / INVALID / FAILED / PROMOTED.
-- UNMEASURED placeholder points are never frontier-eligible.
-- Cross-revision or cross-metric comparisons return INVALID — they are
-  not evidence.
-- Every gate evaluation emits a SHA-256 receipt over its exact inputs.
+The honest companion to every quantization claim: quality-vs-precision curves and throughput numbers measured on named hardware, on named dates, with named methods. A curve that can't be traced to runs doesn't render.
 
-## Promotion rule (defaults)
+## Guarantees
 
-A candidate level is PROMOTED against the measured FP16-class baseline of
-the same weights revision and metric only when all hold:
+- **Measured points only** — every point on a curve is an actual run; no interpolation dressed up as data.
+- **Quality and throughput together** — perplexity and tokens/sec reported from the same machine on the same day.
+- **Receipts** — every point is hash-chained into the run ledger so history is tamper-evident.
+- **Fail-closed display** — unverifiable runs appear as absent.
 
-1. quality_retention >= 0.98
-2. memory_reduction >= 0.25
-3. the candidate sits on the Pareto frontier (quality up, memory down)
+## Public surface
 
-## Usage
+The consolidated public bench lives at [betterwithage/szl-bench-suite](https://huggingface.co/spaces/betterwithage/szl-bench-suite) (Quant Curve tab) — one evidence surface for engine, retrieval, and quantization claims.
 
-```python
-from quant_curve.pareto import QuantPoint
-from quant_curve.gates import evaluate_level
+Hardware truth is sourced from the published runtime witness ([szl-holdings/lutar-runtime-witness](https://github.com/szl-holdings/lutar-runtime-witness)), whose verifier recomputes every digest from source and fails closed on drift.
 
-fp16 = QuantPoint("FP16", "weights-rev-abc", 0.700, "task_acc", 16.0, 40.0)
-q4   = QuantPoint("Q4_K_M", "weights-rev-abc", 0.685, "task_acc", 4.9, 95.0)
+## Status
 
-receipt = evaluate_level(q4, fp16, [fp16, q4])
-print(receipt.status)     # PROMOTED | MEASURED | BLOCKED | INVALID
-```
-
-## Tests
-
-```bash
-python tests/test_quant_curve.py   # 10 tests, stdlib only
-```
-
-CI runs the suite on Python 3.11 and 3.12 on every push and PR.
-
-## Files
-
-- quant_curve/pareto.py — Pareto frontier, retention/reduction math
-- quant_curve/gates.py — five-state promotion gate + receipts
-- tests/test_quant_curve.py — 10 tests over labeled fixtures
-- .github/workflows/ci.yml — CI on push/PR
-
-Doctrine v11. Apache-2.0. Λ = Conjecture 1 (advisory).
+Foundation (2026-09-03): honest-results contract, curve schema, and verifier in place. Measured points land here from the dedicated GPU node as runs complete.
