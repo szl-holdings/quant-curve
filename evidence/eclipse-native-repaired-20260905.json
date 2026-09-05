@@ -1,0 +1,201 @@
+{
+  "baseline": {
+    "detail": {
+      "errors": [],
+      "measured_count": 3
+    },
+    "valid": true
+  },
+  "blind_spots": [],
+  "golden_chain": [
+    {
+      "hash": "5395648c57a03c5c9f1286ce3f3b6c682b8d650481b23810aafe0a8f488dee6e",
+      "machine": {
+        "cpu": "fixture-control",
+        "gpu": "none",
+        "ram_gb": 1
+      },
+      "measured_at": "2000-01-01T00:00:00Z",
+      "method": "eclipse-native-control-v1",
+      "metrics": {
+        "score": 0.42
+      },
+      "plane": "quant",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "status": "MEASURED"
+    },
+    {
+      "hash": "2e2b096f1c4e90a905b7d8de84d29ddd7fe842b90f3631f6927897df2a5aba16",
+      "machine": {
+        "cpu": "fixture-control",
+        "gpu": "none",
+        "ram_gb": 1
+      },
+      "measured_at": "2000-01-01T00:00:00Z",
+      "method": "eclipse-native-control-v1",
+      "metrics": {
+        "score": 0.421
+      },
+      "plane": "quant",
+      "prev_hash": "5395648c57a03c5c9f1286ce3f3b6c682b8d650481b23810aafe0a8f488dee6e",
+      "status": "MEASURED"
+    },
+    {
+      "hash": "e11a8aa032d4c19cf76e9616e9179bcd36ff945d4766b3fc6dc8a333f1da7fe0",
+      "machine": {
+        "cpu": "fixture-control",
+        "gpu": "none",
+        "ram_gb": 1
+      },
+      "measured_at": "2000-01-01T00:00:00Z",
+      "method": "eclipse-native-control-v1",
+      "metrics": {
+        "score": 0.422
+      },
+      "plane": "quant",
+      "prev_hash": "2e2b096f1c4e90a905b7d8de84d29ddd7fe842b90f3631f6927897df2a5aba16",
+      "status": "MEASURED"
+    }
+  ],
+  "mutations": [
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[1] hash mismatch (recomputed != declared)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "85e42672492248a56e510f8cf9dbe536e9ae47bfae86b9864e6d0fbac3eb5b7b",
+      "mutation": "metric_tamper"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[0] C:\\Users\\steph\\AppData\\Local\\Temp\\szl-eclipse-8vmzeo7p\\000.json: chain break (prev_hash mismatch)",
+          "[1] C:\\Users\\steph\\AppData\\Local\\Temp\\szl-eclipse-8vmzeo7p\\001.json: chain break (prev_hash mismatch)",
+          "[2] C:\\Users\\steph\\AppData\\Local\\Temp\\szl-eclipse-8vmzeo7p\\002.json: chain break (prev_hash mismatch)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "90cfb0df516c98b5f644dd9267603b182faf46565f92bb1f1abe36d25289f5c3",
+      "mutation": "reorder"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[2] hash mismatch (recomputed != declared)",
+          "[2] C:\\Users\\steph\\AppData\\Local\\Temp\\szl-eclipse-nzfnnagu\\002.json: chain break (prev_hash mismatch)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "2dd8ec32f5637d5d411bdeab8cfbd25fb684603913e2ab26b0b87d31cfee6784",
+      "mutation": "prevhash_swap"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[2] hash mismatch (recomputed != declared)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "4901b8661cdbcbd44bce68422a7f716fa91ed6d5e86ea20f323058e6591e47a0",
+      "mutation": "terminal_truncate"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[1] hash mismatch (recomputed != declared)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "ebee87d98d9e280e267c74804ba526466429a3c607a86f8246965f43e30a733e",
+      "mutation": "plane_rename"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[1] hash mismatch (recomputed != declared)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "3abcf15f57c90b7e43351746d648c15646504d316d6e9cfeb4750673bd320c41",
+      "mutation": "key_rename"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[1] hash mismatch (recomputed != declared)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "b140dbda8a2f41a32d1608165e74e6a83ce9b4c61d3ee42dd546b2be842cfa38",
+      "mutation": "precision_drift_without_rehash"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[1] hash mismatch (recomputed != declared)"
+        ],
+        "measured_count": 3
+      },
+      "input_hash": "c2725fffb632c040c5ceecbc39dec0ba72cdb362b9a5346f334b4b261cb15418",
+      "mutation": "type_confusion"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "empty receipt chain"
+        ],
+        "measured_count": 0
+      },
+      "input_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "mutation": "empty"
+    },
+    {
+      "accepted": false,
+      "caught": true,
+      "detail": {
+        "errors": [
+          "[2] C:\\Users\\steph\\AppData\\Local\\Temp\\szl-eclipse-c6zqw_qs\\002.json: chain break (prev_hash mismatch)"
+        ],
+        "measured_count": 4
+      },
+      "input_hash": "11454483777698e272388eb80e03941dd9155a15bd307ef014a61610b5bb97ef",
+      "mutation": "duplicate_receipt"
+    }
+  ],
+  "plane": "quant",
+  "receipt": "676c21f20c7929a15c53c369a948be5b8874c311ce3b0a221541f15ecfc393ed",
+  "schema": "szl.eclipse.native-plane.v1",
+  "scope": "LOCAL_FIXTURE_VERIFIER_CONTROLS",
+  "sensitivity": "10/10",
+  "source": {
+    "commit": "6487338192634f14db7a2dd97afa4bc476c51a77",
+    "repository": "szl-holdings/quant-curve",
+    "tool": {
+      "commit": "6322f40ba8d6254c99beb786fed01e12cca0537d",
+      "repository": "szl-holdings/szl-eclipse"
+    },
+    "verifier_path": "verify/verifier.py",
+    "verifier_sha256": "f728b2e1ddc2e8add9d4a41981408a19e08e29798fe3e3f113a3a1d0b8bcdb82"
+  },
+  "state": "VERIFIED-SENSITIVE"
+}
