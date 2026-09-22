@@ -6,7 +6,8 @@ A level is PROMOTED only if, against a measured FP16-class baseline of the
 SAME weights revision and SAME metric:
 - quality_retention >= min_retention (default 0.98)
 - memory_reduction >= min_memory_reduction (default 0.25)
-- the candidate sits on the Pareto frontier
+- the exact candidate sits on the Pareto frontier formed only from measured
+  points for that same weights revision and quality metric
 
 Missing baseline or zero measured points -> BLOCKED. Metric or revision
 mismatch -> INVALID. Never fabricates a number.
@@ -47,11 +48,18 @@ def evaluate_level(candidate: QuantPoint, baseline: Optional[QuantPoint],
                    all_points: List[QuantPoint],
                    min_retention: float = 0.98,
                    min_memory_reduction: float = 0.25) -> GateReceipt:
-    inputs_hash = _hash({"candidate": candidate.__dict__,
-                          "baseline": baseline.__dict__ if baseline else None,
-                          "n_points": len(all_points)})
+    points = list(all_points)
     thresholds = {"min_retention": min_retention,
                   "min_memory_reduction": min_memory_reduction}
+    # Bind every value that can affect the gate decision. The previous contract
+    # hashed only n_points, which allowed different frontier populations of the
+    # same length to share an inputs_hash even when they changed promotion.
+    inputs_hash = _hash({
+        "candidate": candidate.__dict__,
+        "baseline": baseline.__dict__ if baseline else None,
+        "all_points": [p.__dict__ for p in points],
+        "thresholds": thresholds,
+    })
     ts = time.time()
 
     if not candidate.measured:
@@ -85,7 +93,16 @@ def evaluate_level(candidate: QuantPoint, baseline: Optional[QuantPoint],
                            thresholds=thresholds, inputs_hash=inputs_hash,
                            timestamp=ts, detail=str(e))
 
-    on_frontier = any(p.level == candidate.level for p in pareto_frontier(all_points))
+    # Pareto dominance is meaningful only inside one weights revision and one
+    # quality metric. Cross-revision or cross-metric points must not veto or
+    # confer frontier membership. Match the exact immutable candidate rather
+    # than accepting any different point that happens to share its level name.
+    comparable_points = [
+        p for p in points
+        if p.model_revision == candidate.model_revision
+        and p.quality_metric == candidate.quality_metric
+    ]
+    on_frontier = candidate in pareto_frontier(comparable_points)
     promoted = ret >= min_retention and red >= min_memory_reduction and on_frontier
     return GateReceipt(
         gate_id=str(uuid.uuid4()),
