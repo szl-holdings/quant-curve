@@ -30,7 +30,7 @@ The honest companion to quantization claims: quality-vs-precision curves and thr
 
 ## Public surface
 
-The consolidated public bench lives at [betterwithage/szl-bench-suite](https://huggingface.co/spaces/betterwithage/szl-bench-suite) (Quant Curve tab) — one evidence surface for engine, retrieval, and quantization claims.
+The consolidated public bench targets the Hugging Face Space [SZLHOLDINGS/szl-bench-suite](https://huggingface.co/spaces/SZLHOLDINGS/szl-bench-suite) (Quantization tab) — one evidence surface for engine, retrieval, and quantization claims.
 
 Hardware identity is declared by benchmark receipts and checked by the consolidated publisher's dedicated-node policy. Receipt authentication proves an operator assertion; this repository does **not** claim an independent hardware witness.
 
