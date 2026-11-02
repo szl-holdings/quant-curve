@@ -1,4 +1,6 @@
 import sys, os
+from dataclasses import replace
+import json
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from quant_curve.pareto import (QuantPoint, pareto_frontier,
@@ -109,6 +111,73 @@ def test_receipt_hash_binds_frontier_population_and_thresholds():
     r3 = evaluate_level(Q4, FP16, ALL, min_retention=0.97)
     assert r1.inputs_hash != r2.inputs_hash
     assert r1.inputs_hash != r3.inputs_hash
+
+
+def _rejects(call):
+    try:
+        call()
+    except ValueError:
+        return
+    raise AssertionError("malformed evidence must raise ValueError")
+
+
+def test_gate_rejects_false_promotion_inputs():
+    for field, values in {
+        "quality": [float("inf"), float("-inf"), float("nan"), True, "0.7", 10 ** 400],
+        "memory_gb": [-1.0, 0.0, float("inf"), float("nan"), False, "4.0"],
+        "throughput_tok_s": [-1.0, float("inf"), float("nan"), True, "40.0"],
+        "measured": ["false", "true", 1, 0, None],
+    }.items():
+        for value in values:
+            malformed = replace(Q4, **{field: value})
+            _rejects(lambda: evaluate_level(malformed, FP16, [FP16, malformed]))
+            _rejects(lambda: pareto_frontier([malformed]))
+
+
+def test_gate_validates_baseline_and_whole_hashed_population():
+    malformed = replace(FP16, memory_gb=float("inf"))
+    _rejects(lambda: evaluate_level(Q4, malformed, ALL))
+    # Incomparable rows remain in inputs_hash and must also be canonical.
+    unrelated = replace(Q2, model_revision="different", quality=float("nan"))
+    _rejects(lambda: evaluate_level(Q4, FP16, ALL + [unrelated]))
+    _rejects(lambda: quality_retention(Q4, malformed))
+    _rejects(lambda: memory_reduction(Q4, malformed))
+
+
+def test_gate_rejects_malformed_policy_thresholds():
+    for value in [float("nan"), float("inf"), float("-inf"), -1, True, "0.98"]:
+        _rejects(lambda: evaluate_level(Q4, FP16, ALL, min_retention=value))
+        _rejects(lambda: evaluate_level(Q4, FP16, ALL, min_memory_reduction=value))
+    _rejects(lambda: evaluate_level(Q4, FP16, ALL, min_memory_reduction=1.01))
+
+
+def test_valid_numeric_boundaries_keep_evidence_states():
+    zero_quality = replace(Q4, quality=0, throughput_tok_s=0)
+    result = evaluate_level(zero_quality, FP16, [FP16, zero_quality], min_retention=0)
+    assert result.status == "PROMOTED"
+    json.dumps(result.to_dict(), allow_nan=False)
+    assert evaluate_level(Q4, FP16, ALL, min_retention=1.01).status == "MEASURED"
+    assert evaluate_level(Q4, FP16, ALL, min_memory_reduction=1).status == "MEASURED"
+    negative_quality = replace(Q4, quality=-0.1)
+    assert evaluate_level(negative_quality, FP16, [FP16, negative_quality]).status == "MEASURED"
+    placeholder = replace(Q4, measured=False, memory_gb=0, throughput_tok_s=0)
+    assert evaluate_level(placeholder, FP16, [placeholder]).status == "BLOCKED"
+    assert pareto_frontier([placeholder]) == []
+
+
+def test_finite_inputs_cannot_emit_infinite_derived_receipt_values():
+    huge_quality = replace(Q4, quality=1e308)
+    tiny_quality = replace(FP16, quality=1e-308)
+    result = evaluate_level(huge_quality, tiny_quality, [huge_quality, tiny_quality])
+    assert result.status == "INVALID"
+    assert result.retention is None
+    json.dumps(result.to_dict(), allow_nan=False)
+    huge_memory = replace(Q4, memory_gb=1e308)
+    tiny_memory = replace(FP16, memory_gb=1e-308)
+    result = evaluate_level(huge_memory, tiny_memory, [huge_memory, tiny_memory])
+    assert result.status == "INVALID"
+    assert result.mem_reduction is None
+    json.dumps(result.to_dict(), allow_nan=False)
 
 
 if __name__ == "__main__":

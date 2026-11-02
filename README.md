@@ -38,6 +38,23 @@ Hardware identity is declared by benchmark receipts and checked by the consolida
 
 Source admission, Hugging Face publication, product/runtime status, and proof/evaluation status are separate evidence layers. Repository CI alone is not a publication or runtime claim.
 
+## Numeric admission
+
+The Python gate and Pareto helpers reject malformed inputs with `ValueError`
+before hashing or comparison. Numeric evidence must be finite Python integers
+or floats; booleans and numeric strings are not measurements. Measured memory
+must be positive, optional throughput must be nonnegative, and `measured` must
+be an actual boolean. Unmeasured placeholders may use zero memory. Quality is
+not restricted to a particular metric's range; baseline quality must still be
+positive for a retention ratio.
+
+Retention thresholds are finite and nonnegative (values above one can require
+improvement). Memory-reduction thresholds are finite fractions from zero to
+one. Validation covers the complete population bound by `inputs_hash`, including
+incomparable rows. Valid inputs retain the existing evidence states; arithmetic
+overflow produces `INVALID`, never a promoted point with an infinite receipt.
+These functions are a library API and are not invoked by the HTTP results route.
+
 ## Status
 
 Current source state contains only the BLOCKED genesis receipt: **zero admitted measured quantization rows**. Real benchmark execution and signed raw evidence remain the responsibility of the dedicated-node measurement producer before any measured point can be published.

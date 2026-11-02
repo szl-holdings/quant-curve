@@ -19,11 +19,12 @@ import uuid
 from dataclasses import dataclass
 from typing import List, Optional
 
-from .pareto import QuantPoint, pareto_frontier, quality_retention, memory_reduction
+from .pareto import (QuantPoint, pareto_frontier, quality_retention,
+                     memory_reduction, _finite_number, _validate_point)
 
 
 def _hash(obj) -> str:
-    return hashlib.sha256(json.dumps(obj, sort_keys=True).encode()).hexdigest()
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, allow_nan=False).encode()).hexdigest()
 
 
 @dataclass
@@ -49,6 +50,17 @@ def evaluate_level(candidate: QuantPoint, baseline: Optional[QuantPoint],
                    min_retention: float = 0.98,
                    min_memory_reduction: float = 0.25) -> GateReceipt:
     points = list(all_points)
+    # Malformed inputs cannot form measured evidence or a canonical receipt.
+    # Validate the entire hashed population, including incomparable points.
+    _validate_point(candidate)
+    if baseline is not None:
+        _validate_point(baseline)
+    for point in points:
+        _validate_point(point)
+    _finite_number(min_retention, "min_retention", nonnegative=True)
+    _finite_number(min_memory_reduction, "min_memory_reduction", nonnegative=True)
+    if min_memory_reduction > 1:
+        raise ValueError("min_memory_reduction must not exceed 1")
     thresholds = {"min_retention": min_retention,
                   "min_memory_reduction": min_memory_reduction}
     # Bind every value that can affect the gate decision. The previous contract
