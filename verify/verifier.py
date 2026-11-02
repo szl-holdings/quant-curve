@@ -30,12 +30,14 @@ def digest(receipt):
 
 
 def check_receipt(r, i):
+    if not isinstance(r, dict):
+        return [f"[{i}] receipt must be a JSON object"]
     errs = [f"[{i}] missing field: {f}" for f in REQUIRED if f not in r]
     if errs:
         return errs
-    if r["plane"] not in PLANES:
+    if not isinstance(r["plane"], str) or r["plane"] not in PLANES:
         errs.append(f"[{i}] unknown plane: {r['plane']}")
-    if r["status"] not in STATUSES:
+    if not isinstance(r["status"], str) or r["status"] not in STATUSES:
         errs.append(f"[{i}] unknown status: {r['status']}")
     m = r["machine"]
     if not isinstance(m, dict) or not all(k in m for k in ("cpu", "ram_gb", "gpu")):
@@ -63,6 +65,8 @@ def verify(paths):
             all_errs.append(f"[{i}] {p}: unreadable JSON: {e}")
             continue
         all_errs += check_receipt(r, i)
+        if not isinstance(r, dict):
+            continue
         if r.get("prev_hash", prev) != prev:
             all_errs.append(f"[{i}] {p}: chain break (prev_hash mismatch)")
         prev = r.get("hash", prev)

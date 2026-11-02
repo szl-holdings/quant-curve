@@ -3,6 +3,7 @@ import json
 import hashlib
 from pathlib import Path
 import sys
+import subprocess
 from tempfile import TemporaryDirectory
 import unittest
 
@@ -32,6 +33,47 @@ class NativeVerifierTests(unittest.TestCase):
         errors, measured = verify(None)
         self.assertTrue(errors)
         self.assertEqual(measured, [])
+
+    def test_nonobject_json_returns_validation_errors(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            for value in (None, [], ["plane"], "MEASURED", 42, True):
+                with self.subTest(value=value):
+                    path.write_text(json.dumps(value), encoding="utf-8")
+                    errors, measured = verify([str(path)])
+                    self.assertTrue(errors)
+                    self.assertIn("JSON object", errors[0])
+                    self.assertEqual(measured, [])
+
+    def test_enum_containers_return_validation_errors(self):
+        receipt = {"plane": "retrieval", "status": "BLOCKED",
+                   "machine": {"cpu": "fixture", "ram_gb": 1, "gpu": "none"},
+                   "measured_at": "2000-01-01T00:00:00Z", "method": "fixture",
+                   "metrics": {}, "prev_hash": GENESIS}
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            for field in ("plane", "status"):
+                for value in ([], {}):
+                    with self.subTest(field=field, value=value):
+                        malformed = dict(receipt, **{field: value})
+                        malformed["hash"] = digest(malformed)
+                        path.write_text(json.dumps(malformed), encoding="utf-8")
+                        errors, measured = verify([str(path)])
+                        self.assertTrue(any(f"unknown {field}:" in e for e in errors))
+                        self.assertEqual(measured, [])
+
+    def test_cli_reports_malformed_receipt_without_traceback(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            path.write_text("null", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(Path(__file__).resolve().parents[1] /
+                                     "verify/verifier.py"), str(path)],
+                capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("FAIL", result.stdout)
+            self.assertIn("checked=1 measured=0 errors=1", result.stdout)
+            self.assertEqual(result.stderr, "")
 
     def test_valid_nonempty_control_and_changed_payload(self):
         receipt = {"plane": "retrieval", "status": "MEASURED",
