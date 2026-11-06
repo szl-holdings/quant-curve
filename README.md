@@ -88,7 +88,7 @@ curl -s http://127.0.0.1:7860/api/results
 python -m pytest -q
 ```
 
-CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on Python 3.11 to 3.14. It first runs the stdlib-only test files with no third-party package installed, then installs the hash-locked [`requirements/ci/test.txt`](requirements/ci/test.txt) and runs the full suite, including the HTTP route. The `receipt-verification` workflow ([`bench.yml`](.github/workflows/bench.yml)) re-verifies `receipts/*.json` on every push.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on Python 3.11 to 3.14. It first runs the stdlib-only test files with no third-party package installed, then installs the hash-locked [`requirements/ci/test.txt`](requirements/ci/test.txt) and runs the full suite, including the HTTP route. The `receipt-verification` workflow ([`bench.yml`](.github/workflows/bench.yml)) re-verifies `receipts/*.json` on every push to `main` and on every pull request.
 
 ## Proof boundary
 
