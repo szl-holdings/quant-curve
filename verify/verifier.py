@@ -11,11 +11,14 @@ Schema (v1):
   hash         str   sha256 of canonical JSON of this receipt without "hash"
 
 Rules: fail closed. Any malformed receipt, bad hash, or broken chain exits 1.
+Receipts must be strict JSON: NaN/Infinity tokens and floats that overflow to
+infinity are rejected rather than hashed into the chain or exported.
 Only MEASURED receipts are publishable; other states are reported, never published.
 Integrity only (UNSIGNED-honest): proves chain continuity, not signer identity.
 """
 import hashlib
 import json
+import math
 import sys
 
 STATUSES = {"MEASURED", "BLOCKED", "INVALID", "FAILED", "PROMOTED"}
@@ -27,6 +30,27 @@ REQUIRED = ("plane", "status", "machine", "measured_at", "method", "metrics", "p
 def digest(receipt):
     body = {k: v for k, v in receipt.items() if k != "hash"}
     return hashlib.sha256(json.dumps(body, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _reject_constant(token):
+    raise ValueError(f"non-finite number {token} is not valid receipt JSON")
+
+
+def _finite_float(text):
+    value = float(text)
+    if not math.isfinite(value):
+        raise ValueError(f"number {text} is not finite")
+    return value
+
+
+def load_receipt(path):
+    """Parse one receipt file as strict JSON.
+
+    The stdlib parser accepts NaN/Infinity and turns 1e400 into inf by default;
+    such values would verify, then reach results.json as non-standard JSON.
+    """
+    with open(path, encoding="utf-8") as f:
+        return json.load(f, parse_constant=_reject_constant, parse_float=_finite_float)
 
 
 def check_receipt(r, i):
@@ -59,8 +83,7 @@ def verify(paths):
     all_errs, measured, prev = [], [], GENESIS
     for i, p in enumerate(paths):
         try:
-            with open(p, encoding="utf-8") as f:
-                r = json.load(f)
+            r = load_receipt(p)
         except Exception as e:
             all_errs.append(f"[{i}] {p}: unreadable JSON: {e}")
             continue

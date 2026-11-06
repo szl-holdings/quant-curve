@@ -1,0 +1,4 @@
+# Runtime closure of the API image (Dockerfile). Edit ranges here; requirements.txt
+# is the hash-locked compile of this file (command in its header).
+fastapi>=0.162.0
+uvicorn[standard]>=0.54.0

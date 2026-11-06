@@ -9,12 +9,33 @@ description = "Quant Curve — quantization quality-vs-resource Pareto frontier 
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Stephen Lutar", email = "stephen@szlholdings.com" }]
-dependencies = ["fastapi>=0.162.0", "uvicorn[standard]>=0.54.0"]
+keywords = ["quantization", "pareto-frontier", "benchmarking", "receipts", "governed-ai"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# The quant_curve library is pure stdlib. FastAPI/uvicorn serve app/main.py only.
+dependencies = []
+
+[project.optional-dependencies]
+api = ["fastapi>=0.162.0", "uvicorn[standard]>=0.54.0"]
+test = ["fastapi>=0.162.0", "httpx2>=2.16.0", "pytest>=9.2.0"]
 
 [project.urls]
-Homepage = "https://a-11-oy.com"
-Repository = "https://github.com/szl-holdings/quant-curve"
+Homepage = "https://github.com/szl-holdings/quant-curve"
+Source = "https://github.com/szl-holdings/quant-curve"
+Issues = "https://github.com/szl-holdings/quant-curve/issues"
 
 [tool.setuptools]
 packages = ["quant_curve"]
@@ -26,3 +47,4 @@ extend-exclude = ["build", "dist", ".venv", "node_modules"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
+testpaths = ["tests"]

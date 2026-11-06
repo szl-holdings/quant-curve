@@ -23,6 +23,7 @@ Runs on owned hardware (the RTX 4000 Ada bench node). No third-party hosting tie
    curl http://127.0.0.1:7863/api/results
 
    Expect state EMPTY_HONEST until the first MEASURED receipt lands. That is correct behavior, not an error.
+   State UNAVAILABLE means the results file is missing, unreadable or malformed: re-run step 1 and read the API log.
 
 ## Updating data
 
@@ -30,5 +31,6 @@ After new receipts arrive: re-run step 1, then `docker compose -f deploy/docker-
 
 ## Honesty contract
 
-- /api/results serves only rows exported from hash-chain-verified MEASURED receipts.
-- Missing or unreadable data returns EMPTY_HONEST with count 0 — never an error page, never fabricated numbers.
+- /api/results serves only rows from the step 1 export: MEASURED receipts from a hash-chain-verified (unsigned) chain. The API does not re-verify receipts; it serves the read-only export as-is.
+- A valid export with no quant rows returns EMPTY_HONEST; a missing, unreadable or malformed results file returns UNAVAILABLE. Both return count 0 — never an error page, never fabricated numbers.
+- The image installs the hash-locked `requirements.txt` (`pip install --require-hashes`); edit ranges in `requirements.in` and recompile with the command in the lock's header.

@@ -1,0 +1,5 @@
+# Test closure for .github/workflows/ci.yml; test.txt is its hash-locked compile.
+# Keep in step with the `test` extra in pyproject.toml.
+fastapi>=0.162.0
+httpx2>=2.16.0
+pytest>=9.2.0
