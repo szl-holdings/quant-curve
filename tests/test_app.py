@@ -93,6 +93,8 @@ class ResultsRouteTests(unittest.TestCase):
             "unknown plane": json.dumps(dict(VALID, results=[{"plane": "other"}])),
             "NaN metric": valid_text.replace("1.5", "NaN"),
             "overflowing float": valid_text.replace("1.5", "1e400"),
+            # Regression: the decoder's RecursionError escaped as HTTP 500.
+            "nesting too deep to decode": valid_text.replace("1.5", "[" * 100_000 + "]" * 100_000),
         }
         for name, text in cases.items():
             with self.subTest(name):
@@ -104,6 +106,26 @@ class ResultsRouteTests(unittest.TestCase):
         with self.subTest("invalid UTF-8"):
             path.write_bytes(b"\xff\xfe{}")
             self.assertEqual(self.get_results(path)["state"], "UNAVAILABLE")
+
+    def test_row_nested_beyond_the_recursion_limit_is_still_http_200(self):
+        # Regression: tools/sync_results.py exports such a row from a verified
+        # chain, and FastAPI's jsonable_encoder (one Python frame per level)
+        # raised RecursionError, so /api/results answered HTTP 500.
+        depth = sys.getrecursionlimit() + 200
+        path = self.dir / "results.json"
+        path.write_text(json.dumps(VALID).replace("1.5", "[" * depth + "]" * depth),
+                        encoding="utf-8")
+        body = self.get_results(path)  # asserts HTTP 200
+        self.assertIn(body["state"], ("MEASURED", "UNAVAILABLE"))
+        if body["state"] == "MEASURED":  # the encoder coped: the row is served intact
+            node, levels = body["results"][0]["metrics"]["x"], 1
+            while node:  # walk iteratively; each level is a one-element list
+                (node,) = node
+                levels += 1
+            self.assertEqual(levels, depth)
+            self.assertEqual(body["generated_at"], VALID["generated_at"])
+        else:  # it did not: nothing is served
+            self.assertEqual((body["results"], body["generated_at"]), ([], None))
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ import os
 import time
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 PLANE = "quant"
 PLANES = ("engine", "retrieval", "quant", "calibration")  # verify/verifier.py schema
@@ -53,8 +54,9 @@ def load_rows():
         if any(not isinstance(row, dict) or row.get("plane") not in PLANES
                for row in data["results"]):
             raise ValueError("invalid result row")
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, RecursionError) as exc:
         # Missing or malformed evidence is reported as such, never as "empty".
+        # RecursionError: nesting too deep for the JSON decoder.
         log.warning("results unavailable from %s: %s", RESULTS, exc)
         return [], None, "UNAVAILABLE"
     rows = [row for row in data["results"] if row["plane"] == PLANE]
@@ -69,6 +71,17 @@ def healthz():
 @app.get("/api/results")
 def results():
     rows, generated_at, state = load_rows()
+    try:
+        # Rendered here, not by FastAPI's recursive jsonable_encoder (one Python
+        # frame per nesting level), so an export nested too deeply to encode is
+        # reported as UNAVAILABLE instead of becoming an HTTP 500.
+        return JSONResponse(_body(rows, generated_at, state))
+    except (ValueError, RecursionError) as exc:
+        log.warning("results unavailable from %s: %s", RESULTS, exc)
+        return JSONResponse(_body([], None, "UNAVAILABLE"))
+
+
+def _body(rows, generated_at, state):
     return {
         "plane": PLANE,
         "state": state,
