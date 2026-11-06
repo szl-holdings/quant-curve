@@ -2,7 +2,8 @@
 
 Fail-closed: any verification error aborts with exit 1 and writes nothing.
 Only MEASURED receipts are exported. Output is UNSIGNED-honest: integrity via
-the hash chain, not signer identity.
+the hash chain, not signer identity. The export is strict JSON and replaces
+out_path atomically, so a reader never sees a partial file.
 
 usage: sync_results.py [receipts_dir] [out_path]
 """
@@ -13,7 +14,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "verify"))
-from verifier import verify  # noqa: E402
+from verifier import load_receipt, verify  # noqa: E402
 
 
 def main(receipts_dir="receipts", out="site/results.json"):
@@ -26,8 +27,7 @@ def main(receipts_dir="receipts", out="site/results.json"):
         return 1
     rows = []
     for p in measured:
-        with open(p, encoding="utf-8") as f:
-            r = json.load(f)
+        r = load_receipt(p)
         rows.append({
             "plane": r["plane"],
             "machine": r["machine"],
@@ -36,14 +36,19 @@ def main(receipts_dir="receipts", out="site/results.json"):
             "metrics": r["metrics"],
             "receipt": r["hash"],
         })
-    os.makedirs(os.path.dirname(out), exist_ok=True)
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "count": len(rows),
         "results": rows,
     }
-    with open(out, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, sort_keys=True)
+    text = json.dumps(payload, indent=2, sort_keys=True, allow_nan=False)
+    parent = os.path.dirname(out)
+    if parent:  # a bare filename writes to the current directory
+        os.makedirs(parent, exist_ok=True)
+    tmp = out + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, out)
     print(f"published {len(rows)} measured rows -> {out}")
     return 0
 
