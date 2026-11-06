@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from verify.verifier import GENESIS, digest, verify
+from verify.verifier import GENESIS, check_receipt, digest, verify
 
 
 class NativeVerifierTests(unittest.TestCase):
@@ -61,6 +61,29 @@ class NativeVerifierTests(unittest.TestCase):
                         errors, measured = verify([str(path)])
                         self.assertTrue(any(f"unknown {field}:" in e for e in errors))
                         self.assertEqual(measured, [])
+
+    def test_nonfinite_numbers_fail_closed(self):
+        # The stdlib parser reads NaN/Infinity tokens and overflows 1e400 to
+        # inf by default. Such a receipt used to verify (its hash recomputes)
+        # and was then exported as non-standard JSON.
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            for token in ("NaN", "Infinity", "-Infinity", "1e400"):
+                with self.subTest(token=token):
+                    receipt = {"plane": "quant", "status": "MEASURED",
+                               "machine": {"cpu": "unit-fixture", "ram_gb": 1, "gpu": "none"},
+                               "measured_at": "2000-01-01T00:00:00Z", "method": "fixture",
+                               "metrics": {"perplexity": "TOKEN"}, "prev_hash": GENESIS}
+                    permissive = json.loads(json.dumps(receipt).replace('"TOKEN"', token))
+                    receipt["hash"] = digest(permissive)
+                    text = json.dumps(receipt).replace('"TOKEN"', token)
+                    # Control: apart from the token the receipt is valid.
+                    self.assertEqual(check_receipt(json.loads(text), 0), [])
+                    path.write_text(text, encoding="utf-8")
+                    errors, measured = verify([str(path)])
+                    self.assertEqual(len(errors), 1)
+                    self.assertIn("unreadable JSON", errors[0])
+                    self.assertEqual(measured, [])
 
     def test_cli_reports_malformed_receipt_without_traceback(self):
         with TemporaryDirectory() as directory:
