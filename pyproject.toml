@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quant-curve"
+version = "0.1.0"
+description = "Quant Curve — quantization quality-vs-resource Pareto frontier and promotion gates. Quality retention vs memory reduction, five-state receipts (MEASURED/BLOCKED/INVALID/FAILED/PROMOTED)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [{ name = "Stephen Lutar", email = "stephen@szlholdings.com" }]
+dependencies = ["fastapi>=0.162.0", "uvicorn[standard]>=0.54.0"]
+
+[project.urls]
+Homepage = "https://a-11-oy.com"
+Repository = "https://github.com/szl-holdings/quant-curve"
+
+[tool.setuptools]
+packages = ["quant_curve"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["build", "dist", ".venv", "node_modules"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"

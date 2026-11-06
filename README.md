@@ -58,3 +58,9 @@ These functions are a library API and are not invoked by the HTTP results route.
 ## Status
 
 Current source state contains only the BLOCKED genesis receipt: **zero admitted measured quantization rows**. Real benchmark execution and signed raw evidence remain the responsibility of the dedicated-node measurement producer before any measured point can be published.
+
+Estate on Hugging Face: models, datasets and Spaces are published under the [SZLHOLDINGS](https://huggingface.co/SZLHOLDINGS) org.
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE).
