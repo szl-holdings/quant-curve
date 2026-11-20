@@ -94,12 +94,13 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on Python 3.11 
 
 What the code establishes:
 
-- `verify/verifier.py`: each receipt is strict JSON with the schema fields, its declared `hash` equals the SHA-256 of its canonical body, and its `prev_hash` links it to the receipt before it.
+- `verify/verifier.py`: each receipt is strict JSON (rejecting duplicate object member names at any nesting depth and non-finite numbers) with the schema fields, its declared `hash` equals the SHA-256 of its canonical body, and its `prev_hash` links it to the receipt before it.
 - `evaluate_level`: a deterministic decision over the points it is given. `inputs_hash` binds the candidate, the baseline, the whole population and the thresholds.
 
 What it does not establish:
 
 - Authorship, time or hardware. Receipts are unsigned, so a chain rewritten from the start with every hash recomputed still verifies. Tamper evidence depends on a head hash recorded elsewhere, such as the revision pin in the consolidated publisher.
+- JSON canonicalization identity beyond this repository's existing sorted-key SHA-256 scheme. Rejecting duplicate members removes a parser ambiguity but does **not** make these receipts RFC 8785/JCS signatures, an independently frozen population, or independently authenticated publisher evidence.
 - That a receipt came from a real run. The verifier cannot tell a fixture from a measurement. Hardware identity and receipt authentication are checked by the consolidated publisher in frontier-bench, not here.
 - Any measurement at all. Nothing in this repository runs a model, and there are zero measured rows.
 - Re-verification at serve time. `/api/results` serves the file `tools/sync_results.py` exported; it does not re-check receipts.
