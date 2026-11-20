@@ -43,14 +43,32 @@ def _finite_float(text):
     return value
 
 
-def load_receipt(path):
-    """Parse one receipt file as strict JSON.
+def _unique_object_members(pairs):
+    """Reject duplicate JSON keys at every nesting level before hashing.
 
-    The stdlib parser accepts NaN/Infinity and turns 1e400 into inf by default;
-    such values would verify, then reach results.json as non-standard JSON.
+    The stdlib default keeps the last duplicate, potentially giving another
+    parser a different view of a supposedly identical measured receipt.
+    Never return the offending key: receipt content can be sensitive.
+    """
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON member")
+        result[key] = value
+    return result
+
+
+def load_receipt(path):
+    """Parse receipt JSON with finite numbers and no ambiguous object members.
+
+    The stdlib parser otherwise accepts NaN/Infinity, turns 1e400 into inf,
+    and silently keeps the last occurrence of any duplicate object key.
+    These forms cannot be safely hashed or exported as measured evidence.
     """
     with open(path, encoding="utf-8") as f:
-        return json.load(f, parse_constant=_reject_constant, parse_float=_finite_float)
+        return json.load(f, parse_constant=_reject_constant,
+                         parse_float=_finite_float,
+                         object_pairs_hook=_unique_object_members)
 
 
 def check_receipt(r, i):
