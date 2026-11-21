@@ -133,6 +133,41 @@ incomparable rows. Valid inputs retain the existing evidence states; arithmetic
 overflow produces `INVALID`, never a promoted point with an infinite receipt.
 These functions are a library API and are not invoked by the HTTP results route.
 
+### Replaying a gate decision
+
+`evaluate_level()` still issues the original `GateReceipt` with its UUID,
+timestamp, field set and order-sensitive `inputs_hash`. To retain an offline
+replay record instead, use the separate `quant-curve/gate-replay/v1` envelope:
+
+```python
+from quant_curve import record_replay, replay_from_receipt
+
+bundle = record_replay(candidate, baseline, all_points)
+# Store this digest independently if later substitution must be detected.
+pin = bundle["sha256"]
+decision = replay_from_receipt(bundle, expected_sha256=pin)
+```
+
+The version fixes the gate calculation and JSON encoding. The immutable
+`FRONTIER_POLICIES` registry names the actual dominance/order convention:
+`pareto.weak-both-one-strict.memory-asc-stable/v1`. Dominance requires no
+worse quality and memory, with strict improvement in at least one. Memory
+sort is ascending; equal-memory ties keep input order. Do not sort the
+population before recording: its order, duplicate rows, full point fields,
+baseline and thresholds are evidence bound by the existing input hash.
+
+`replay_from_receipt()` accepts a decoded envelope, independently re-runs
+the named policy and compares the complete canonical decision, not just its
+status. Bad schema, unknown policy, changed digest or inconsistent decision
+raises `ValueError`. When loading untrusted JSON text, reject duplicate keys
+before passing the decoded object; a dictionary cannot witness discarded
+entries. A successful replay of a `BLOCKED` or `INVALID` decision
+still yields that state. Wall-clock and UUID metadata are excluded rather
+than regenerated. The unkeyed digest cannot detect a fully recomputed
+replacement without an independently trusted pin. Replay is neither a signed
+measurement nor a receipt for `verify/verifier.py`, and authorizes no promotion
+or publication by itself.
+
 ## Status
 
 Current source state contains only the BLOCKED genesis receipt: **zero admitted measured quantization rows**. Real benchmark execution and signed raw evidence remain the responsibility of the dedicated-node measurement producer before any measured point can be published.

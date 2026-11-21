@@ -1,13 +1,14 @@
 """
 Pareto frontier for quantization quality-vs-resource trade-offs.
 
-A point is Pareto-optimal if no other point has both strictly-better quality
-AND strictly-lower memory. Pure math over measured inputs only — the module
+A point is Pareto-optimal if no other point is no worse on both axes and
+strictly better on at least one. Pure math over measured inputs only — the module
 never invents a measurement.
 """
 from dataclasses import dataclass
 import math
-from typing import List, Optional
+from types import MappingProxyType
+from typing import Callable, List, Optional
 
 
 @dataclass(frozen=True)
@@ -50,23 +51,43 @@ def _validate_point(point: QuantPoint) -> None:
         _finite_number(point.throughput_tok_s, "throughput_tok_s", nonnegative=True)
 
 
-def pareto_frontier(points: List[QuantPoint]) -> List[QuantPoint]:
-    """Return the subset of measured points that are Pareto-optimal
-    (maximize quality, minimize memory), sorted by memory ascending."""
+def _dominates(q: QuantPoint, p: QuantPoint) -> bool:
+    return (q.quality >= p.quality and q.memory_gb <= p.memory_gb
+            and (q.quality > p.quality or q.memory_gb < p.memory_gb))
+
+
+def _memory_key(p: QuantPoint):
+    return p.memory_gb
+
+
+@dataclass(frozen=True, slots=True)
+class FrontierPolicy:
+    dominates: Callable[[QuantPoint, QuantPoint], bool]
+    order_key: Callable[[QuantPoint], float]
+
+
+# Python's stable sort preserves original population order on equal keys.
+# A changed convention needs a new name; never reinterpret a recorded name.
+DEFAULT_POLICY = "pareto.weak-both-one-strict.memory-asc-stable/v1"
+FRONTIER_POLICIES = MappingProxyType({DEFAULT_POLICY: FrontierPolicy(_dominates, _memory_key)})
+
+
+def _policy_frontier(points, policy: FrontierPolicy) -> List[QuantPoint]:
     points = list(points)
     for point in points:
         _validate_point(point)
     measured = [p for p in points if p.measured]
     frontier = []
     for p in measured:
-        dominated = any(
-            q is not p and q.quality >= p.quality and q.memory_gb <= p.memory_gb
-            and (q.quality > p.quality or q.memory_gb < p.memory_gb)
-            for q in measured
-        )
+        dominated = any(q is not p and policy.dominates(q, p) for q in measured)
         if not dominated:
             frontier.append(p)
-    return sorted(frontier, key=lambda p: p.memory_gb)
+    return sorted(frontier, key=policy.order_key)
+
+
+def pareto_frontier(points: List[QuantPoint]) -> List[QuantPoint]:
+    """Return measured Pareto-optimal points, stably sorted by memory ascending."""
+    return _policy_frontier(points, FRONTIER_POLICIES[DEFAULT_POLICY])
 
 
 def quality_retention(candidate: QuantPoint, baseline: QuantPoint) -> float:
