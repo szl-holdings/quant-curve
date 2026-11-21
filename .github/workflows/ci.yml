@@ -23,6 +23,7 @@ jobs:
         run: |
           python tests/test_verifier.py
           python tests/test_quant_curve.py
+          python -m unittest discover -s tests -p test_replay.py
           python tests/test_bench_suite_target.py
           python tests/test_sync_results.py
       - name: Install hash-locked test closure
