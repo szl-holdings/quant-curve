@@ -85,6 +85,46 @@ class NativeVerifierTests(unittest.TestCase):
                     self.assertIn("unreadable JSON", errors[0])
                     self.assertEqual(measured, [])
 
+    def test_duplicate_json_members_fail_closed_at_every_depth(self):
+        # A last-key-wins parser can accept these, with a matching canonical
+        # digest, while a first-key-wins consumer sees a different result.
+        receipt = {"plane": "quant", "status": "MEASURED",
+                   "machine": {"cpu": "unit-fixture", "ram_gb": 1, "gpu": "none"},
+                   "measured_at": "2000-01-01T00:00:00Z",
+                   "method": "fixture", "metrics": {"score": 0.5},
+                   "prev_hash": GENESIS}
+        receipt["hash"] = digest(receipt)
+        canonical = json.dumps(receipt)
+        variants = (
+            canonical.replace('"status": "MEASURED"',
+                              '"status": "BLOCKED", "status": "MEASURED"'),
+            canonical.replace('"score": 0.5',
+                              '"score": 0.1, "score": 0.5'),
+            canonical.replace('"cpu": "unit-fixture"',
+                              '"cpu": "false-source", "cpu": "unit-fixture"'),
+            canonical.replace('"hash": "' + receipt["hash"] + '"',
+                              '"hash": "' + "f" * 64 + '", "hash": "' + receipt["hash"] + '"'),
+        )
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            for raw in variants:
+                with self.subTest(raw_sha256=hashlib.sha256(raw.encode()).hexdigest()):
+                    self.assertNotEqual(raw, canonical)
+                    # Negative control: last-key-wins maps to the same payload.
+                    self.assertEqual(json.loads(raw), receipt)
+                    path.write_text(raw, encoding="utf-8")
+                    errors, measured = verify([str(path)])
+                    self.assertEqual(measured, [])
+                    self.assertEqual(len(errors), 1)
+                    self.assertIn("duplicate JSON member", errors[0])
+                    self.assertNotIn("false-source", errors[0])
+
+            # Distinct keys at multiple nesting levels remain admissible.
+            path.write_text(canonical, encoding="utf-8")
+            errors, measured = verify([str(path)])
+            self.assertEqual(errors, [])
+            self.assertEqual(measured, [str(path)])
+
     def test_cli_reports_malformed_receipt_without_traceback(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "receipt.json"
